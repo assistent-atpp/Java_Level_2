@@ -11,7 +11,7 @@ public class Main {
                 new Cat("Kotik", 200, 3),
                 new Human("Iziy", 5000, 5)
         };
-        // массив препятствий
+        // массив препятствий бег и стена
         Obstacle [] obstacles = {
                 new Cross(400),
                 new Wall(1)
