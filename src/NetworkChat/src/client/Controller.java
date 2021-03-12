@@ -26,6 +26,7 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
+
     @FXML
     public TextArea textArea;
     @FXML
@@ -37,7 +38,7 @@ public class Controller implements Initializable {
     @FXML
     public PasswordField passwordField;
     @FXML
-    public HBox messagePanel;
+    public HBox msgPanel;
     @FXML
     public ListView<String> clientList;
 
@@ -50,7 +51,7 @@ public class Controller implements Initializable {
 
     private boolean authenticated;
     private String nickName;
-    private final String TITLE = "Setting Chat";
+    private final String TITLE = "NetworkChat";
     private Stage stage;
     private Stage regStage;
     private RegController regController;
@@ -59,8 +60,8 @@ public class Controller implements Initializable {
         this.authenticated = authenticated;
         authPanel.setVisible(!authenticated);
         authPanel.setManaged(!authenticated);
-        messagePanel.setVisible(authenticated);
-        messagePanel.setManaged(authenticated);
+        msgPanel.setVisible(authenticated);
+        msgPanel.setManaged(authenticated);
         clientList.setVisible(authenticated);
         clientList.setManaged(authenticated);
 
@@ -71,14 +72,15 @@ public class Controller implements Initializable {
     }
 
     @Override
-    public void initialize (URL location, ResourceBundle resources) {
+    public void initialize(URL location, ResourceBundle resources) {
         setAuthenticated(false);
         createRegWindow();
         Platform.runLater(() -> {
             stage = (Stage) textField.getScene().getWindow();
             stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
                 @Override
-                public void handle(WindowEvent windowEve) {
+                public void handle(WindowEvent event) {
+//                    System.out.println("bye");
                     if (socket != null && !socket.isClosed()) {
                         try {
                             out.writeUTF("/end");
@@ -91,7 +93,8 @@ public class Controller implements Initializable {
         });
     }
 
-    public void sendMessage (ActionEvent actionEvent) {
+
+    public void sendMsg(ActionEvent actionEvent) {
         try {
             out.writeUTF(textField.getText());
             textField.clear();
@@ -101,7 +104,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void tryToAuth (ActionEvent actionEvent) {
+    public void tryToAuth(ActionEvent actionEvent) {
         if (socket == null || socket.isClosed()) {
             connect();
         }
@@ -112,6 +115,7 @@ public class Controller implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     private void connect() {
@@ -124,33 +128,36 @@ public class Controller implements Initializable {
                 @Override
                 public void run() {
                     try {
-                        while(true) {
-                            String string = in.readUTF();
-                            if (string.startsWith("/authOK")) {
-                                nickName = string.split(" ", 2)[1];
+                        // цикл аутентификации
+                        while (true) {
+                            String str = in.readUTF();
+                            if (str.startsWith("/authok")) {
+                                nickName = str.split(" ", 2)[1];
                                 setAuthenticated(true);
                                 break;
                             }
 
-                            if (string.startsWith("regOK")) {
+                            if(str.startsWith("/regok")){
                                 regController.addMsgToTextArea("Регистрация прошла успешно");
                             }
 
-                            if (string.startsWith("regNO")) {
+                            if(str.startsWith("/regno")){
                                 regController.addMsgToTextArea("Регистрация не получилась \n возможно логин или ник заняты");
                             }
-                            textArea.appendText(string + "\n");
+
+                            textArea.appendText(str + "\n");
                         }
 
+                        // цикл работы
                         while (true) {
-                            String string = in.readUTF();
-                            if (string.startsWith("/")) {
-                                if (string.equals("/end")) {
+                            String str = in.readUTF();
+                            if (str.startsWith("/")) {
+                                if (str.equals("/end")) {
                                     break;
                                 }
-                                if (string.startsWith("/clientList")) {
-                                    String [] token = string.split("\\s+");
-                                    Platform.runLater(() -> {
+                                if (str.startsWith("/clientsList ")){
+                                    String[] token = str.split("\\s+");
+                                    Platform.runLater(()->{
                                         clientList.getItems().clear();
                                         for (int i = 1; i < token.length; i++) {
                                             clientList.getItems().add(token[i]);
@@ -158,7 +165,7 @@ public class Controller implements Initializable {
                                     });
                                 }
                             } else {
-                                textArea.appendText(string + "\n");
+                                textArea.appendText(str + "\n");
                             }
                         }
                     } catch (IOException e) {
@@ -174,6 +181,7 @@ public class Controller implements Initializable {
                     }
                 }
             }).start();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -190,11 +198,10 @@ public class Controller implements Initializable {
         textField.setText("/w " + receiver + " ");
     }
 
-    public void createRegWindow() {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("reg.fxml"));
-        Parent root = null;
+    private void createRegWindow(){
         try {
-            root = fxmlLoader.load();
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("reg.fxml"));
+            Parent root = fxmlLoader.load();
             regStage = new Stage();
             regStage.setTitle("Reg window");
             regStage.setScene(new Scene(root, 400, 250));
@@ -212,14 +219,15 @@ public class Controller implements Initializable {
         regStage.show();
     }
 
-    public void tryToReg(String login, String password, String nickName) {
-        String message = String.format("/reg %s %s %s", login, password, nickName);
+    public void tryToReg(String login, String password, String nickname){
+        String msg = String.format("/reg %s %s %s", login, password, nickname);
 
-        if (socket == null || socket.isClosed()) {
+        if(socket == null || socket.isClosed()){
             connect();
         }
+
         try {
-            out.writeUTF(message);
+            out.writeUTF(msg);
         } catch (IOException e) {
             e.printStackTrace();
         }

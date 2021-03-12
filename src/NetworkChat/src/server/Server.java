@@ -49,6 +49,21 @@ public class Server{
         }
     }
 
+    public void privateMsg(ClientHandler sender, String receiver, String msg) {
+        String message = String.format("%s [%s] private [%s] : %s",formater.format(new Date()), sender.getNickName(), receiver, msg);
+        for (ClientHandler c : clients) {
+            if (c.getNickName().equals(receiver)) {
+                c.sendMsg(message);
+                if (!c.equals(sender)) {
+                    sender.sendMsg(message);
+                }
+                return;
+            }
+        }
+
+        sender.sendMsg("not found user: " + receiver);
+    }
+
     public void subscribe(ClientHandler clientHandler) {
         clients.add(clientHandler);
         broadcastClientList();
