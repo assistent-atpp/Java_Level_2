@@ -3,6 +3,7 @@ package server;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.Socket;
 
 public class ClientHandler {
@@ -23,8 +24,6 @@ public class ClientHandler {
 
             new Thread(() -> {
                 try {
-//                    socket.setSoTimeout(5000);
-//                    socket.setSoTimeout(0);
                     // цикл аутентифиукаии
                     while (true) {
                         String str = in.readUTF();
@@ -33,8 +32,7 @@ public class ClientHandler {
                             if (token.length <3){
                                 continue;
                             }
-                            String newNick = server.getAuthService()
-                                    .getNickByLoginAndPassword(token[1], token[2]);
+                            String newNick = server.getAuthService().getNickByLoginAndPassword(token[1], token[2]);
                             login = token[1];
                             if (newNick != null) {
                                 if (!server.isLoginAuthenticated(login)) {
@@ -48,6 +46,8 @@ public class ClientHandler {
                                 }
                             } else {
                                 sendMsg("Неверный логин / пароль");
+                                // отключение клиента по тайм ауту через 2 минуты после создания сокета и бездействия
+                                socket.setSoTimeout(120_000);
                             }
                         }
 
